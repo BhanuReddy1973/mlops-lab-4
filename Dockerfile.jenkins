@@ -1,0 +1,39 @@
+# Custom Jenkins Server Image with Tools Pre-installed
+# This image serves as both Jenkins master and execution node
+
+FROM jenkins/jenkins:lts
+
+# Switch to root to install system packages
+USER root
+
+# Update and install required tools
+# - Python 3: For running ML training scripts
+# - jq: For parsing JSON metrics
+# - bc: For comparing floating-point numbers
+# - Docker CLI: For building and pushing Docker images
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    jq \
+    bc \
+    lsb-release \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Docker CLI
+RUN curl -fsSLo /usr/share/keyrings/docker-archive-keyring.asc \
+  https://download.docker.com/linux/debian/gpg && \
+  echo "deb [arch=$(dpkg --print-architecture) \
+  signed-by=/usr/share/keyrings/docker-archive-keyring.asc] \
+  https://download.docker.com/linux/debian \
+  $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list && \
+  apt-get update && \
+  apt-get install -y docker-ce-cli && \
+  rm -rf /var/lib/apt/lists/*
+
+# Install virtualenv for Python environments
+RUN pip3 install virtualenv --break-system-packages
+
+# Switch back to jenkins user
+USER jenkins
